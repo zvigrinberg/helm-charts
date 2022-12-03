@@ -395,7 +395,7 @@ controller:
   # and must start and end with an alphanumeric character (e.g. 'my-name',  or '123-abc')
   # existingSecret existing secret "secret-credentials" and a key inside it named "github-username" should be used in Jcasc as ${github-username}
   # When using existingSecret no need to specify the keyName under additionalExistingSecrets.
-  existingSecret:
+  existingSecret: secret-credentials
 
   additionalExistingSecrets: []
   #  - name: secret-name-1
@@ -433,7 +433,199 @@ controller:
     configUrls: []
     # - https://acme.org/jenkins.yaml
     # Remote URL:s for configuration files.
-    configScripts: {}
+    configScripts:
+      jenkins-credentials: |
+        credentials:
+          system:
+            domainCredentials:
+              - credentials:
+                  - usernamePassword:
+                      description: "credentials for pulling images and charts from quay.io"
+                      id: "quay-io-registry-credentials"
+                      password: ${password}
+                      scope: GLOBAL
+                      username: "zgrinber"
+                  - string:
+                      description: "token of service account with all RBAC permissions to deploy"
+                      id: "jenkins-token-for-helm"
+                      scope: GLOBAL
+                      secret: ${token}
+                  - basicSSHUserPrivateKey:
+                      description: "git user and ssh private key"
+                      id: "git-user-and-ssh"
+                      privateKeySource:
+                        directEntry:
+                          privateKey: ${id-ed25519}
+                      scope: GLOBAL
+                      username: "Zvi Grinberg"
+                  - file:
+                      description: "openshift cluster certificate authority"
+                      fileName: "ca-jenkins-deployer.cert"
+                      id: "openshift-ca"
+                      scope: GLOBAL
+                      secretBytes: ${ca-jenkins-deployer}
+      openshift-cloud: |
+        jenkins:
+          agentProtocols:
+            - "JNLP4-connect"
+            - "Ping"
+          authorizationStrategy:
+            loggedInUsersCanDoAnything:
+              allowAnonymousRead: false
+          clouds:
+            - kubernetes:
+                containerCap: 10
+                containerCapStr: "10"
+                credentialsId: "jenkins-token-for-helm"
+                jenkinsUrl: "http://jenkins:80"
+                name: "openshift-cluster"
+                serverCertificate: |-
+                  -----BEGIN CERTIFICATE-----
+                  MIIDMjCCAhqgAwIBAgIIA7tG728f5RwwDQYJKoZIhvcNAQELBQAwNzESMBAGA1UE
+                  CxMJb3BlbnNoaWZ0MSEwHwYDVQQDExhrdWJlLWFwaXNlcnZlci1sYi1zaWduZXIw
+                  HhcNMjIwNDE5MTUyMzUzWhcNMzIwNDE2MTUyMzUzWjA3MRIwEAYDVQQLEwlvcGVu
+                  c2hpZnQxITAfBgNVBAMTGGt1YmUtYXBpc2VydmVyLWxiLXNpZ25lcjCCASIwDQYJ
+                  KoZIhvcNAQEBBQADggEPADCCAQoCggEBALMbS0WdM8anCsnZlBoLFQ9XLimO0Q28
+                  bFQz86o+IYZj9NFKp5qgJorMiPfefPvYiTuMlkNG7NEHuCg9kYrBnCdo7PFNSQ4u
+                  n+6EnYl4gX04C9xWQQ0vzrk4DXS5H5PfaAVCLA9Fn83iQqHZe96Q7vCUBZlTnaeY
+                  X14BMTft5yOoTjXvRaP9stk9dTvW+J9ejBymaFsGbsQrgTkj58IZePIboOwetTZp
+                  2DuT+MaGxOOVETYewR+NMM3X+KQBoUfjvde69QtKSvSlQDzX/42Tc41SkOq9zYkl
+                  PisWTn4JA2r3ZsZJR4yaZyWRt5fxJeZIdWnE3UXE9Eu4IzT4BOPXnzsCAwEAAaNC
+                  MEAwDgYDVR0PAQH/BAQDAgKkMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFIiq
+                  wG3Wgqm2I06xKCkcWW9MfFXhMA0GCSqGSIb3DQEBCwUAA4IBAQCV48XFfFiLVVSg
+                  lhhR6pVU5hYoBVOhcSKNdI+ma2JMqRAcKqLCJQpFfScPjWxqFPmNYmHH1yXf9t56
+                  PH1HxLYMqy1psLNFF4haj/63aV2Ua8ZX6xL0L5hP40y5YTwm5y68V72G+YIimJS+
+                  VjNrfE1+7DVzLM4jUUkc0EAl5RE+5ybEy8G072HQwpxvoG2BTCTuxOp8lOz3COk4
+                  OFYTN+utdvRfAgh53mbD2EZWD6cX0SrvSENrGbKzlKy6F/1lVvFSPb69i69QbH6y
+                  z2zCOdmXzQ0CpAWhndOsKqlxUgecGoaCRcymR176JaEg6khVUAWt3M34clz8tWUS
+                  SWnqwZ5j
+                  -----END CERTIFICATE-----
+                  -----BEGIN CERTIFICATE-----
+                  MIIDQDCCAiigAwIBAgIIT4DjxqiAXoUwDQYJKoZIhvcNAQELBQAwPjESMBAGA1UE
+                  CxMJb3BlbnNoaWZ0MSgwJgYDVQQDEx9rdWJlLWFwaXNlcnZlci1sb2NhbGhvc3Qt
+                  c2lnbmVyMB4XDTIyMDQxOTE1MjM1MloXDTMyMDQxNjE1MjM1MlowPjESMBAGA1UE
+                  CxMJb3BlbnNoaWZ0MSgwJgYDVQQDEx9rdWJlLWFwaXNlcnZlci1sb2NhbGhvc3Qt
+                  c2lnbmVyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1VOmWg9ZH57O
+                  rCvsMVrpa3ETTITXKcA5VaxRz0Sn0CfLxB7KfJueeUHqpVyf8qfhPX3k9TnQWexH
+                  Kv45e2ygBhD6uvrUt31qekJcvK3mhSlexGvBW4QlbacN5espYjPZ8Cv/gdj6rtcJ
+                  TYgtxPHRctwpkcAqphec1OX7+vNdpj/phdY9j+AFx4QV3OrvHI08sLmo+kVMmTTY
+                  YLnQwda9q0VnemnvmVEPlPCCQbzStgXJL0N/Kzm4OO5x1QU1gyEXx8RsRI7XL2bh
+                  a2qCfP+rqrh5mK2Kfz/iAYNauSMv2HKjoViGXJxrGKgDj1tM2ij9D9A5fcSRiecY
+                  HD3vC/ZA9wIDAQABo0IwQDAOBgNVHQ8BAf8EBAMCAqQwDwYDVR0TAQH/BAUwAwEB
+                  /zAdBgNVHQ4EFgQU9AqjApz4gODlaJ6x9ZrkcRdF9LUwDQYJKoZIhvcNAQELBQAD
+                  ggEBAFHO6pbhPJzMku5EjVM8RW0EJVtUdVILvtFH1M8UDIUVkLDmPUHAi3N+0bon
+                  RjYg8QZ3korSLt0GOk4OTv3eUTp4F6M7EkIr86VM2zzcSAdPfI0c/dJP7Zk6cGFC
+                  zFhX0/MHOgYQiilRLyjtCIP4h1oqJ8fWezZ5H3QJ6SP3omDU8s2SUAeD1gp3KuIh
+                  jgdwMjUtZFKUNtZFV3vp8VzIiFYgm4QUhPZJyKjfhNGaCnPFc3lvjhROQMz3SXfM
+                  5d7VOkRRYIUrkafYdVPe7DfNA3E6ObPxJsnQno3BrXvjxEZrdnw5SmjVLY6rZYEh
+                  qoY3UDZ+UdgFIRjZ4/yGxdxFynI=
+                  -----END CERTIFICATE-----
+                  -----BEGIN CERTIFICATE-----
+                  MIIDTDCCAjSgAwIBAgIIROCcwg8HiE4wDQYJKoZIhvcNAQELBQAwRDESMBAGA1UE
+                  CxMJb3BlbnNoaWZ0MS4wLAYDVQQDEyVrdWJlLWFwaXNlcnZlci1zZXJ2aWNlLW5l
+                  dHdvcmstc2lnbmVyMB4XDTIyMDQxOTE1MjM1M1oXDTMyMDQxNjE1MjM1M1owRDES
+                  MBAGA1UECxMJb3BlbnNoaWZ0MS4wLAYDVQQDEyVrdWJlLWFwaXNlcnZlci1zZXJ2
+                  aWNlLW5ldHdvcmstc2lnbmVyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKC
+                  AQEA19NlryqlJU1O0NbcyhFH/oNHPY5K7tIq2soFf4f1uKEjxOyl8JGI3JvCw0iQ
+                  RWq99xZaOt9fABPXDLOp46puc+3ORRQ5m4Rv1xecXPwEOdzhIQbTEKs4ESfY4SWQ
+                  EnzmZSBKxBHrgSmX3tk3zeCWfRkAIbV1o48d+21sXKplwnTuvVK3ubgYiiRhNbqE
+                  4p86YC3+enA/5PZUhy4UTEoxVvWp3BP19f60/WLXO+ILxgcTTlXBzxdFEe5HyLZI
+                  PaU3kizY7ITrK3GN6KJ+QVl+Fe3ozHzqkvqXSoF8DpGSAb6qfSXYLf1aUfUXkdGc
+                  7/wWdwmUbr6upsGLVspNy8ndGwIDAQABo0IwQDAOBgNVHQ8BAf8EBAMCAqQwDwYD
+                  VR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQU++K+twzFI0Q96pzPBBaGK/ggHBgwDQYJ
+                  KoZIhvcNAQELBQADggEBAKL9MwVO0bf369z2QD/STVEW0+B/Awj4cFrKgX7DbxxO
+                  g7i6U9Vby/Ur/sB1wrI7S1Z6yjLS3Vj7n1qa1Bl+35tnoCukhxSDzdZlQQf9Y2d3
+                  LC47kZ0j6WzDJS+CmxjnLXc8Vr8X7fu74oyaaBEUoP5DsykCQILqUbzQy3nEBnnx
+                  /hnvnav4uhl4ptzAacC3DuifvDIh1pSSI7XpeFHOThIcfRj15R2GhyjUNrIR4c3A
+                  pzQbQ3Le9MWplQWLbwOHryCcurOMSQW54dez9pm6U7JEB/WgSp6hRdHIVL2ZrLge
+                  NqG2cVKx6vdZeN1HLq6M2aaCn6+z1GURJdDTEcst458=
+                  -----END CERTIFICATE-----
+                  -----BEGIN CERTIFICATE-----
+                  MIIDlzCCAn+gAwIBAgIIGE4vvJ2YuVAwDQYJKoZIhvcNAQELBQAwWTFXMFUGA1UE
+                  AwxOb3BlbnNoaWZ0LWt1YmUtYXBpc2VydmVyLW9wZXJhdG9yX2xvY2FsaG9zdC1y
+                  ZWNvdmVyeS1zZXJ2aW5nLXNpZ25lckAxNjUwMzgyNTY0MB4XDTIyMDQxOTE1MzYw
+                  NFoXDTMyMDQxNjE1MzYwNVowWTFXMFUGA1UEAwxOb3BlbnNoaWZ0LWt1YmUtYXBp
+                  c2VydmVyLW9wZXJhdG9yX2xvY2FsaG9zdC1yZWNvdmVyeS1zZXJ2aW5nLXNpZ25l
+                  ckAxNjUwMzgyNTY0MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu0WX
+                  UUaOAH6lZ9NrXIzm2OKUP7FY8K40s8gLFd0JFAqWnOqy3WryNjOgRKHbNOacXKE7
+                  T5S9rZncG6myRG7sCjyxrGFjcs+fCfIenqbgSQEixCXEhbBzZ5bml9di6BmDauYK
+                  rkbzyXO7piPkn9irJx1Ks5YJcGK5BuJW9I/kYy1t0omiK6OKDP5tb6HiU9lkIE3G
+                  JkxS2K2T2HrZKeaSP+5Uy35XrhCTi3HbB+bizN9x+rWiFlzVLc4NxK2kInCrdC2X
+                  v93NbWhBp0O2Any7zk2AAJEz0cBO80paSr5n/dIgLccYAJ7xO/WXDxmNEaVrvBwz
+                  LNZnSIgJ9A2xZKOflwIDAQABo2MwYTAOBgNVHQ8BAf8EBAMCAqQwDwYDVR0TAQH/
+                  BAUwAwEB/zAdBgNVHQ4EFgQUR9StVxBlfMlz1sppkCk3XlCVf2QwHwYDVR0jBBgw
+                  FoAUR9StVxBlfMlz1sppkCk3XlCVf2QwDQYJKoZIhvcNAQELBQADggEBAHfVxIvL
+                  FUjzijXIDFSKXWBJ1WNa1AGLVmW/AqnRavXIYTAWIHk6BNOEITJtp7SQtyFD0gLw
+                  7/6hU7LER2aoogq7mxm1veyzL/pP0C7SXDw1UqWzIXne02M8MFg5Ty3fsekMNlyO
+                  x6zf/CB8sd4T+1FTP0o5ZpU2UC3Y3bR/W0mtqs9ZJ9m3CSkSR5gF/USFZPScFZoI
+                  WLg7wpDmSo2hTZbivZje3ekfBvf+/FXTeJdISYfS/hvwnNqPA12BdoPNOsn4qTtJ
+                  +8hbAOowji8veVIBPJHue6QBQFz8TsdDarxZH5Tm/7QhvMeBdR+bOosK/D4bqly4
+                  VmB6OsAYOxLLzao=
+                  -----END CERTIFICATE-----
+                  -----BEGIN CERTIFICATE-----
+                  MIIDpTCCAo2gAwIBAgIIRjBsvYmcmsMwDQYJKoZIhvcNAQELBQAwJjEkMCIGA1UE
+                  AwwbaW5ncmVzcy1vcGVyYXRvckAxNjUwMzgyNjM5MB4XDTIyMDQxOTE1MzcxOVoX
+                  DTI0MDQxODE1MzcyMFowQjFAMD4GA1UEAww3Ki5hcHBzLnRyYW4tdGVtZW5vcy5r
+                  bmkuc3lzZW5nLmRldmNsdXN0ZXIub3BlbnNoaWZ0LmNvbTCCASIwDQYJKoZIhvcN
+                  AQEBBQADggEPADCCAQoCggEBALIHDMxhxwnqpyl9wosPBqG+uHHSQJXCG86KOE0I
+                  gvzRhNw6/br+fftGoB4KRQWtdUjptxZB7DbTIys2Hj7Vt3HPPU1ReqkoQRs3qzuZ
+                  A2WhlFeblNLKSkDIfOIYlgNhxM303dxyuEthcsLkpW3vbiYoEPHhfJQ8xuxkJRRL
+                  WTMk4fpzis2gwzdAVUWyfV/OPXPyo3CMxT/88WggdHsO64UrHGk8uhd6KzSscEW9
+                  s6Oa50BoRyN98Ra3MGIl1VsMa5RNLMU1vwrAIpWry6LoOxLyexhmv4/L8CU5tWPo
+                  3kWfJwIXu8AhxbwWSZ+tH5IaG3212nOq3EbkKwWl97RbySkCAwEAAaOBujCBtzAO
+                  BgNVHQ8BAf8EBAMCBaAwEwYDVR0lBAwwCgYIKwYBBQUHAwEwDAYDVR0TAQH/BAIw
+                  ADAdBgNVHQ4EFgQUhtgg1eueqY52ZPPw7YVMPyqdi8YwHwYDVR0jBBgwFoAUB5oZ
+                  qawzxnkKX31ygA6/1DcrF+8wQgYDVR0RBDswOYI3Ki5hcHBzLnRyYW4tdGVtZW5v
+                  cy5rbmkuc3lzZW5nLmRldmNsdXN0ZXIub3BlbnNoaWZ0LmNvbTANBgkqhkiG9w0B
+                  AQsFAAOCAQEAFkWUcXk7dgiePTfA1Y25u3UCMVOXP7H+YGjDTVbZHDTwRNuC7yLh
+                  b6naVfBXFXbE9WcLpmi5kO4AZ3lW7lMvP2CgeoHwrV9yz81NxGQNlROLZBzaPKmb
+                  uyzqfv3QVpbJFKme9pS/mIzXiml97WU0NXW8ZqMd96921U1+rEsWRYZYOmnV78WV
+                  jHcpnYA4bNa6LJHDIsuplhZE11rjCl4WvkG0days2fPj/xk5n7wCGZ6mqB0guP24
+                  Zg716RSFjgNfs9TkmCJATt/nO61IIzB6g2NhNBpRTO6k5t/Gr02d1HIxfRi1AUWV
+                  Dk9cTIijKpnuCCsETfkz+dbkKZwmX+JRDQ==
+                  -----END CERTIFICATE-----
+                  -----BEGIN CERTIFICATE-----
+                  MIIDDDCCAfSgAwIBAgIBATANBgkqhkiG9w0BAQsFADAmMSQwIgYDVQQDDBtpbmdy
+                  ZXNzLW9wZXJhdG9yQDE2NTAzODI2MzkwHhcNMjIwNDE5MTUzNzE4WhcNMjQwNDE4
+                  MTUzNzE5WjAmMSQwIgYDVQQDDBtpbmdyZXNzLW9wZXJhdG9yQDE2NTAzODI2Mzkw
+                  ggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDEVGXE4hYjc21b7l7Ox4Xd
+                  +JOr4OLv5ZPyF6e25992IQ00qaZ6E627B8q0dO2sPGb2KL9LljRDkZ8/UK7a/ZRh
+                  P/QeNyQfDpo8fbxtp4w9IVk4KitXO+RgcW/CHh8OAQ9Iy/nV5/gLCMiPFDFxCTcV
+                  FBB7cz4vuV9vCjqrXU4ng2SCmPVHeXh6Hqhkg/bnxmabOUxd6f5dtlSLk1u9Gw22
+                  kNPKHKZXXvXkH+T8rAjUHAh24LSu2fkLqcpcSZGKHW8ZHOa5goWuR+NODr7smykp
+                  WyZMIC4c5BqTiRYwLh7+oqNm9UnrA5Furbt+eimrEQrvESQC/792I8i1wydjut+N
+                  AgMBAAGjRTBDMA4GA1UdDwEB/wQEAwICpDASBgNVHRMBAf8ECDAGAQH/AgEAMB0G
+                  A1UdDgQWBBQHmhmprDPGeQpffXKADr/UNysX7zANBgkqhkiG9w0BAQsFAAOCAQEA
+                  hX61sG6DOkrKFcp9LtJM9qxSpckOmYAQQZtFW1+MpLKrMFHiSiQDV2pTdaYrt2bR
+                  CFgzNMKO1WiOP/he3Y7xN9LN2Je1kCj5dcnlqZhhwihnB9m4Xa7KS3lLzAa3bwFI
+                  UtzP9ufhIeoshhpcGyIFbTKNmsIhIinQKg2mBUNhJYwf4B6qdSLcYydpc3Kzh8A9
+                  OejDUkdUQAF9T6PREW2GqOJgMKEoLcCc4Y6Y2rujPBqkafZSuk27JAiX550aofet
+                  HDS76CP3Yi9UTBAsOOhV9iG3vB6N5F5dwAI+s1DC6K/dk2lTZmeFrwVjdqZVOKLi
+                  8wfL+1JZ+PKe4c334Bm/SA==
+                  -----END CERTIFICATE-----
+                serverUrl: "kubernetes.default.svc.cluster.local"
+                templates:
+                  - containers:
+                      - alwaysPullImage: true
+                        envVars:
+                          - envVar:
+                              key: "HELM_EXPERIMENTAL_OCI"
+                              value: "1"
+                        image: "quay.io/zgrinber/jenkins-agent-helm-new:2"
+                        livenessProbe:
+                          failureThreshold: 0
+                          initialDelaySeconds: 0
+                          periodSeconds: 0
+                          successThreshold: 0
+                          timeoutSeconds: 0
+                        name: "jnlp"
+                        workingDir: "/tmp"
+                    id: "692c3d12-0f43-4c06-941b-493353a58bc0"
+                    label: "jenkins-agent-helm"
+                    name: "jenkins-agent-helm"
+                    namespace: "jenkins"
+                    yamlMergeStrategy: "override"
+                webSocket: true
     #  welcome-message: |
     #    jenkins:
     #      systemMessage: Welcome to our CI\CD server.  This Jenkins is configured and managed 'as code'.
