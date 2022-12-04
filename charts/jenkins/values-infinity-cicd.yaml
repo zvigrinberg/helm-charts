@@ -434,6 +434,10 @@ controller:
     # - https://acme.org/jenkins.yaml
     # Remote URL:s for configuration files.
     configScripts:
+      gitHostKeySSHNoVerification: |
+        security:
+          gitHostKeyVerificationConfiguration:
+            sshHostKeyVerificationStrategy: noHostKeyVerificationStrategy
       jenkins-credentials: |
         credentials:
           system:
@@ -450,6 +454,11 @@ controller:
                       id: "jenkins-token-for-helm"
                       scope: GLOBAL
                       secret: ${token}
+                  - string:
+                      description: "Authentication token for GitHub REST API services for PR"
+                      id: "gh-pat-for-pr"
+                      scope: GLOBAL
+                      secret: ${gh-token}
                   - basicSSHUserPrivateKey:
                       description: "git user and ssh private key"
                       id: "git-user-and-ssh"
@@ -457,27 +466,34 @@ controller:
                         directEntry:
                           privateKey: ${id-ed25519}
                       scope: GLOBAL
-                      username: "Zvi Grinberg"
+                      username: "zvigrinberg"
                   - file:
                       description: "openshift cluster certificate authority"
                       fileName: "ca-jenkins-deployer.cert"
                       id: "openshift-ca"
                       scope: GLOBAL
                       secretBytes: ${ca-jenkins-deployer}
+                  - file:
+                      description: "Private key for decrypting secrets in helm values.yaml"
+                      fileName: "private.pgp"
+                      id: "gpg-private-key-for-cd"
+                      scope: GLOBAL
+                      secretBytes: ${private}
+
       openshift-cloud: |
         jenkins:
           agentProtocols:
             - "JNLP4-connect"
             - "Ping"
-          authorizationStrategy:
-            loggedInUsersCanDoAnything:
-              allowAnonymousRead: false
+          authorizationStrategy: unsecured
+
           clouds:
             - kubernetes:
                 containerCap: 10
                 containerCapStr: "10"
                 credentialsId: "jenkins-token-for-helm"
-                jenkinsUrl: "http://jenkins:80"
+                jenkinsUrl: "http://jenkins:8080"
+                jenkinsTunnel: "jenkins-agent:50000"
                 name: "openshift-cluster"
                 serverCertificate: |-
                   -----BEGIN CERTIFICATE-----
@@ -625,7 +641,7 @@ controller:
                     name: "jenkins-agent-helm"
                     namespace: "jenkins"
                     yamlMergeStrategy: "override"
-                webSocket: true
+                webSocket: false
     #  welcome-message: |
     #    jenkins:
     #      systemMessage: Welcome to our CI\CD server.  This Jenkins is configured and managed 'as code'.
