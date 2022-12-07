@@ -485,7 +485,7 @@ controller:
           agentProtocols:
             - "JNLP4-connect"
             - "Ping"
-          authorizationStrategy: unsecured
+#         authorizationStrategy: unsecured
 
           clouds:
             - kubernetes:
